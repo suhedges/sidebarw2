@@ -59,11 +59,13 @@ app.post('/chat', async (req, res) => {
           })
           .on('end', () => {
             responseText = responseText.replace(/【.*?】/g, '');
+            console.log('Generating response using Assistant ID:', assistantId || "asst_BvrFPSsSNhed6wOdnjwjH2GK");
+            console.log('Assistant response:', responseText);
             res.json({ threadId: thread.id, response: responseText });
           });
 
       } catch (error) {
-        console.error(error);
+        console.error('OpenAI API Error:', error.response ? error.response.data : error.message);
         res.status(500).json({ error: error.message });
       }
 });
