@@ -37,9 +37,11 @@ app.post('/chat', async (req, res) => {
         if (threadId) {
             thread = { id: threadId };
         } else {
-            thread = await openai.beta.threads.create();
+            // Include assistantId when creating a new thread
+            thread = await openai.beta.threads.create({
+                assistant_id: assistantId || defaultAssistantId
+            });
         }
-
         await openai.beta.threads.messages.create(thread.id, {
             role: "user",
             content: message
@@ -47,7 +49,6 @@ app.post('/chat', async (req, res) => {
 
         let responseText = "";
         await openai.beta.threads.runs.stream(thread.id, {
-            assistant_id: assistantId || defaultAssistantId
         })
             .on('textDelta', (textDelta) => {
             console.log('Received textDelta:', textDelta);
