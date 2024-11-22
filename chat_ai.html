@@ -842,10 +842,10 @@
                 itemDiv.innerHTML = `<strong>${option.name}</strong>`;
                 itemDiv.classList.add('autocomplete-item');
                 itemDiv.addEventListener('click', function(e) {
-                    // Insert the value for the autocomplete text field
                     displaySelectedAssistant(option.name);
                     messageInput.value = val.slice(0, atIndex).trim();
                     assistantId = option.id; // Set the assistant ID based on selection
+                    threadId = null; // Reset the thread ID to ensure a new thread is created
                     closeAllLists();
                 });
                 // Append the itemDiv to the listDiv
