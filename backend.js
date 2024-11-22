@@ -30,6 +30,7 @@ const assistantId = "asst_BvrFPSsSNhed6wOdnjwjH2GK";
 
 app.post('/chat', async (req, res) => {
     const { message, threadId, assistantId } = req.body;
+    console.log('Received assistantId:', assistantId);
 
     try {
         let thread;
