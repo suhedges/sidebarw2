@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Product Filter</title>
+    <!-- Include Bootstrap CSS for sleek styling -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- Custom Styles -->
+    <style>
+        body {
+            background-color: #fff;
+        }
+        .results .product {
+            background-color: #fff;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .form-group {
+            width: 100%;
+            margin: 0 auto;
+        }
+        .results .product h5 {
+            margin-top: 0;
+        }
+        .attribute-name {
+            font-weight: bold;
+        }
+        .attribute-row {
+            border-bottom: 1px solid #dee2e6;
+            padding: 5px 0;
+        }
+
+        #searchButton {
+            background-color: #3d7190;
+            border-color: #3d7190;     
+            color: #fff;   
+            width: 50%;
+            margin: 0 auto;          
+        }
+
+        #searchButton:hover {
+            background-color: #84A5B9; 
+            border-color: #84A5B9;    
+        }
+        .btn-view-product {
+            background-color: #3d7190;
+            border-color: #3d7190;    
+            color: #fff;              
+        }
+
+        .btn-view-product:hover {
+            background-color: #84A5B9; 
+            border-color: #84A5B9;  
+            color: #fff;   
+        }
+        #loadingSpinner {
+            display: flex; /* Added this line */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            z-index: 9999;
+            justify-content: center; 
+            align-items: center;    
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Find a Product</h1>
+
+        <!-- Removed 'd-flex' from class list -->
+        <div id="loadingSpinner" class="justify-content-center align-items-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+    
+        <div id="mainContent" class="d-none">
+            <div id="filters" class="mb-4">
+                <!-- Filters will be dynamically populated here -->
+            </div>
+            <button id="searchButton" class="btn btn-primary btn-block mb-4">Search</button>
+            <div id="results" class="results">
+                <!-- Search results will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <!-- JavaScript Code -->
+    <script>
+        let data = [];
+        let selectedGeneralType = null;
+        let selectedCategory = null;
+        let selectedAttributes = {};
+
+        // Define General Product Types with their associated keywords
+        const generalProductTypes = [
+            {
+                name: "Adhesives, Sealants & Lubrication",
+                keywords: ["Adhesives", "Sealants", "Lubrication", "Adhesive", "Lubricants", "Threadlockers", "Epoxy", "Oil", "Grease", "Greases", "Putties", "Retaining Compounds"]
+            },
+            {
+                name: "Batteries & Accessories",
+                keywords: ["Batteries", "Battery"]
+            },
+            {
+                name: "Bearings",
+                keywords: ["Bearings", "Bearing", "Needle Roller", "Cam Follower", "Yoke Rollers", "Rod Ends", "Take-Up", "Housings"]
+            },
+            {
+                name: "Belt, Sheaves & Pulleys",
+                keywords: ["Belt", "Sheaves", "Pulleys", "Poly-V", "Belts"]
+            },
+            {
+                name: "Bushings",
+                keywords: ["Bushings", "Bushing"]
+            },
+            {
+                name: "Chains & Sprockets",
+                keywords: ["Chains", "Sprockets", "Offset", "Chain Replacement", "Chain Wrenches", "Sprocket"]
+            },
+            {
+                name: "Chemicals",
+                keywords: ["Chemicals", "Anti-Sieze", "Degreasers", "Killers", "Inhibitors", "Penetrants"]
+            },
+            {
+                name: "Clamping, Workholding & Positioning",
+                keywords: ["Clamping", "Workholding", "Positioning", "C-Clamps"]
+            },
+            {
+                name: "Clutches & Brakes",
+                keywords: ["Clutches", "Brakes"]
+            },
+            {
+                name: "Conveyors & Conveyor Parts",
+                keywords: ["Conveyors", "Conveyor Parts", "Conveyor"]
+            },
+            {
+                name: "Couplings",
+                keywords: ["Couplings", "Coupling"]
+            },
+            {
+                name: "Electric Motors",
+                keywords: ["Electric Motors", "Motors", "AC Motors", "DC Motors", "Motor"]
+            },
+            {
+                name: "Fasteners",
+                keywords: ["Fasteners", "E-Clip", "Retaining Ring", "Retaining Rings"]
+            },
+            {
+                name: "Gear Reducers & Gearmotors",
+                keywords: ["Gear Reducers", "Gearmotors", "Gear Drive", "Clutch", "Torque Limiter", "Torque Limiters"]
+            },
+            {
+                name: "Gears",
+                keywords: ["Gears", "Gear Racks"]
+            },
+            {
+                name: "Heating, Fans, Ventilation, Vacuum",
+                keywords: ["Heating", "Fans", "Ventilation", "Vacuum"]
+            },
+            {
+                name: "Hydraulics",
+                keywords: ["Hydraulics", "Hydraulic"]
+            },
+            {
+                name: "Janitorial & Facility Maintenance",
+                keywords: ["Janitorial", "Facility Maintenance"]
+            },
+            {
+                name: "Linear Motion",
+                keywords: ["Linear Motion", "Profile Rail", "Round Rail", "Roller Rails", "Round Linear", "Track Runners", "Ball Screw", "Ball Screws", "Ball Nut"]
+            },
+            {
+                name: "Motor Controls & Drives",
+                keywords: ["Motor Controls", "Drives"]
+            },
+            {
+                name: "Paints, Equipment & Supplies",
+                keywords: ["Paints", "Equipment", "Supplies"]
+            },
+            {
+                name: "Pipe, Tube, Hose & Fittings",
+                keywords: ["Pipe", "Tube", "Hose", "Pipe Fittings", "Hoses", "Pipes"]
+            },
+            {
+                name: "Pneumatics",
+                keywords: ["Pneumatics", "Pneumatic"]
+            },
+            {
+                name: "Seals, Gaskets & Packing",
+                keywords: ["Seals", "Gaskets", "Packing", "O-rings", "O-ring", "Backup Rings", "Seal Sets", "Square Profile Rings"]
+            },
+            {
+                name: "Sorbent Supplies",
+                keywords: ["Sorbent Supplies", "Absorbent"]
+            },
+            {
+                name: "Tensioners & Idlers",
+                keywords: ["Tensioners", "Idlers"]
+            },
+            {
+                name: "Testing & Measuring",
+                keywords: ["Testing", "Measuring"]
+            },
+            {
+                name: "Tools",
+                keywords: ["Tool", "Wrench", "Puller", "Gauges", "Guns", "Pullers", "Pliers", "Sockets", "Hammers", "Tensioners", "Detectors", "Torx", "Picks", "Paint Brushes", "Pulling Attachments"]
+            }
+        ];
+
+        async function loadJSONData() {
+            const spinner = document.getElementById('loadingSpinner');
+            const mainContent = document.getElementById('mainContent');
+            const startTime = Date.now();
+            const minSpinnerTime = 500; // Minimum spinner display time in milliseconds
+        
+            try {
+                const response = await fetch('all_products.json');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                data = await response.json();
+                categorizeProducts();
+                init();
+        
+                const elapsedTime = Date.now() - startTime;
+                const remainingTime = minSpinnerTime - elapsedTime;
+                if (remainingTime > 0) {
+                    setTimeout(() => {
+                        spinner.classList.add('d-none');
+                        mainContent.classList.remove('d-none');
+                    }, remainingTime);
+                } else {
+                    spinner.classList.add('d-none');
+                    mainContent.classList.remove('d-none');
+                }
+            } catch (error) {
+                console.error('Error loading JSON data:', error);
+                // Hide the spinner and display an error message
+                spinner.classList.add('d-none');
+                mainContent.classList.remove('d-none');
+                mainContent.innerHTML = `
+                    <p class="text-danger text-center">Failed to load data. Please try again later.</p>
+                    <div class="text-center">
+                        <button class="btn btn-secondary" onclick="loadJSONData()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Function to assign each product category to a general product type
+        function categorizeProducts() {
+            data.forEach(product => {
+                product.generalType = getGeneralProductType(product['Category Name']);
+            });
+        }
+
+        function getGeneralProductType(categoryName) {
+            let matchedTypes = [];
+
+            // Check for matches
+            generalProductTypes.forEach(gpt => {
+                gpt.keywords.forEach(keyword => {
+                    const regex = new RegExp('\\b' + keyword + '\\b', 'i');
+                    if (regex.test(categoryName)) {
+                        matchedTypes.push(gpt.name);
+                    }
+                });
+            });
+
+            // If "Lubrication" is present, prioritize it
+            if (/Lubrication/i.test(categoryName)) {
+                return "Adhesives, Sealants & Lubrication";
+            }
+
+            if (matchedTypes.length > 0) {
+                // Return the first matched general product type
+                return matchedTypes[0];
+            } else {
+                return "Other";
+            }
+        }
+
+        function init() {
+            const filtersDiv = document.getElementById('filters');
+
+            // Create General Product Type dropdown
+            const generalTypeFormGroup = document.createElement('div');
+            generalTypeFormGroup.className = 'form-group';
+
+            const generalTypeLabel = document.createElement('label');
+            generalTypeLabel.innerText = 'Select a General Product Type';
+            generalTypeLabel.htmlFor = 'generalTypeSelect';
+
+            const generalTypeSelect = document.createElement('select');
+            generalTypeSelect.id = 'generalTypeSelect';
+            generalTypeSelect.className = 'form-control';
+
+            // Populate General Product Type options
+            let generalTypes = [...new Set(data.map(item => item.generalType))];
+
+            // Check if "Other" exists and remove it temporarily
+            const otherIndex = generalTypes.indexOf("Other");
+            let hasOther = false;
+            if (otherIndex !== -1) {
+                generalTypes.splice(otherIndex, 1); // Remove "Other"
+                hasOther = true;
+            }
+
+            // Sort the remaining general types alphabetically
+            generalTypes.sort();
+
+            // Add "Other" at the end if it was present
+            if (hasOther) {
+                generalTypes.push("Other");
+            }
+
+            // Add a default option
+            generalTypeSelect.innerHTML = '<option value="">--Select General Product Type--</option>';
+
+            // Append sorted options to the select element
+            generalTypes.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.innerText = type;
+                generalTypeSelect.appendChild(option);
+            });
+
+            generalTypeFormGroup.appendChild(generalTypeLabel);
+            generalTypeFormGroup.appendChild(generalTypeSelect);
+            filtersDiv.appendChild(generalTypeFormGroup);
+
+            generalTypeSelect.addEventListener('change', onGeneralTypeChange);
+
+            // Search Button
+            document.getElementById('searchButton').addEventListener('click', onSearch);
+        }
+
+        function onGeneralTypeChange(event) {
+            selectedGeneralType = event.target.value;
+            selectedCategory = null;
+            selectedAttributes = {};
+            const filtersDiv = document.getElementById('filters');
+
+            // Remove existing category and attribute dropdowns
+            const existingDropdowns = document.querySelectorAll('.category-filter, .attribute-filter');
+            existingDropdowns.forEach(el => el.remove());
+
+            if (selectedGeneralType) {
+                // Get all categories under the selected general product type
+                const categories = [...new Set(data.filter(item => item.generalType === selectedGeneralType).map(item => item['Category Name']))];
+
+                // Create Product Type (Category) dropdown
+                const categoryFormGroup = document.createElement('div');
+                categoryFormGroup.className = 'form-group category-filter';
+
+                const categoryLabel = document.createElement('label');
+                categoryLabel.innerText = 'Select a Product Type';
+                categoryLabel.htmlFor = 'categorySelect';
+
+                const categorySelect = document.createElement('select');
+                categorySelect.id = 'categorySelect';
+                categorySelect.className = 'form-control';
+                categorySelect.innerHTML = '<option value="">--Select Product Type--</option>';
+
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.innerText = category;
+                    categorySelect.appendChild(option);
+                });
+
+                categoryFormGroup.appendChild(categoryLabel);
+                categoryFormGroup.appendChild(categorySelect);
+                filtersDiv.appendChild(categoryFormGroup);
+
+                categorySelect.addEventListener('change', onCategoryChange);
+            }
+        }
+
+        function onCategoryChange(event) {
+            selectedCategory = event.target.value;
+            selectedAttributes = {};
+            const filtersDiv = document.getElementById('filters');
+
+            // Remove existing attribute dropdowns
+            const existingDropdowns = document.querySelectorAll('.attribute-filter');
+            existingDropdowns.forEach(el => el.remove());
+
+            if (selectedCategory) {
+                // Get all products in the selected category
+                const productsInCategory = data.filter(item => item['Category Name'] === selectedCategory);
+
+                // Collect all attribute names
+                let attributeNames = new Set();
+                productsInCategory.forEach(product => {
+                    product.Attributes.forEach(attr => {
+                        attributeNames.add(attr.name);
+                    });
+                });
+
+                // For each attribute, create a dropdown
+                attributeNames.forEach(attrName => {
+                    createAttributeDropdown(attrName, productsInCategory);
+                });
+            }
+        }
+
+        function createAttributeDropdown(attrName, products) {
+            const filtersDiv = document.getElementById('filters');
+
+            const attrFormGroup = document.createElement('div');
+            attrFormGroup.className = 'form-group attribute-filter';
+
+            const attrLabel = document.createElement('label');
+            attrLabel.innerText = attrName;
+            attrLabel.htmlFor = 'attr_' + attrName;
+
+            const attrSelect = document.createElement('select');
+            attrSelect.id = 'attr_' + attrName;
+            attrSelect.dataset.attrName = attrName;
+            attrSelect.className = 'form-control';
+            attrSelect.innerHTML = '<option value="">--Select ' + attrName + '--</option>';
+
+            // Collect all values for this attribute
+            let values = new Set();
+            products.forEach(product => {
+                product.Attributes.forEach(attr => {
+                    if (attr.name === attrName) {
+                        let displayValue = attr.value;
+                        if (attr.uom) {
+                            displayValue += ' ' + attr.uom;
+                        }
+                        values.add(displayValue);
+                    }
+                });
+            });
+
+            // Populate the select options
+            values.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.innerText = value;
+                attrSelect.appendChild(option);
+            });
+
+            attrFormGroup.appendChild(attrLabel);
+            attrFormGroup.appendChild(attrSelect);
+            filtersDiv.appendChild(attrFormGroup);
+
+            attrSelect.addEventListener('change', onAttributeChange);
+        }
+
+        function onAttributeChange(event) {
+            const attrName = event.target.dataset.attrName;
+            const attrValue = event.target.value;
+            if (attrValue) {
+                selectedAttributes[attrName] = attrValue;
+            } else {
+                delete selectedAttributes[attrName];
+            }
+
+            updateAttributeDropdowns();
+        }
+
+        function updateAttributeDropdowns() {
+            const filtersDiv = document.getElementById('filters');
+            const attributeDropdowns = filtersDiv.querySelectorAll('.attribute-filter select');
+
+            // Get filtered products based on current attribute selections
+            let filteredProducts = data.filter(item => item['Category Name'] === selectedCategory);
+            for (const [attrName, attrValue] of Object.entries(selectedAttributes)) {
+                filteredProducts = filteredProducts.filter(product => {
+                    return product.Attributes.some(attr => {
+                        let displayValue = attr.value;
+                        if (attr.uom) {
+                            displayValue += ' ' + attr.uom;
+                        }
+                        return attr.name === attrName && displayValue === attrValue;
+                    });
+                });
+            }
+
+            // Update each attribute dropdown
+            attributeDropdowns.forEach(dropdown => {
+                const attrName = dropdown.dataset.attrName;
+                if (selectedAttributes[attrName]) {
+                    // Skip updating the dropdown for the attribute that's already selected
+                    return;
+                }
+
+                // Collect all possible values for this attribute from the filtered products
+                let values = new Set();
+                filteredProducts.forEach(product => {
+                    product.Attributes.forEach(attr => {
+                        if (attr.name === attrName) {
+                            let displayValue = attr.value;
+                            if (attr.uom) {
+                                displayValue += ' ' + attr.uom;
+                            }
+                            values.add(displayValue);
+                        }
+                    });
+                });
+
+                // Save the current selection
+                const currentValue = dropdown.value;
+
+                // Clear existing options
+                dropdown.innerHTML = '<option value="">--Select ' + attrName + '--</option>';
+
+                // Repopulate options
+                values.forEach(value => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.innerText = value;
+                    dropdown.appendChild(option);
+                });
+
+                // Restore previous selection if still valid
+                if (values.has(currentValue)) {
+                    dropdown.value = currentValue;
+                } else {
+                    // If the previous selection is no longer valid, remove it from selectedAttributes
+                    delete selectedAttributes[attrName];
+                }
+            });
+        }
+
+        function onSearch() {
+            if (Object.keys(selectedAttributes).length < 2) {
+                alert('Please select at least two attribute values to perform a search.');
+                return;
+            }
+
+            // Filter products
+            let filteredProducts = data.filter(item => item['Category Name'] === selectedCategory);
+
+            for (const [attrName, attrValue] of Object.entries(selectedAttributes)) {
+                filteredProducts = filteredProducts.filter(product => {
+                    return product.Attributes.some(attr => {
+                        let displayValue = attr.value;
+                        if (attr.uom) {
+                            displayValue += ' ' + attr.uom;
+                        }
+                        return attr.name === attrName && displayValue === attrValue;
+                    });
+                });
+            }
+
+            displayResults(filteredProducts);
+        }
+
+        function displayResults(products) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+            if (products.length === 0) {
+                resultsDiv.innerHTML = '<p>No products match your criteria.</p>';
+                return;
+            }
+
+            products.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'product card';
+
+                const cardBody = document.createElement('div');
+                cardBody.className = 'card-body';
+
+                const title = document.createElement('h5');
+                title.className = 'card-title';
+                title.innerText = product['Part Number'];
+                cardBody.appendChild(title);
+
+                const url = document.createElement('a');
+                url.href = product['Product URL'];
+                url.innerText = 'View Product';
+                url.target = '_blank';
+                url.className = 'btn btn-view-product mb-3';
+                cardBody.appendChild(url);
+
+                const table = document.createElement('table');
+                table.className = 'table table-sm';
+
+                const tbody = document.createElement('tbody');
+
+                product.Attributes.forEach(attr => {
+                    const row = document.createElement('tr');
+
+                    const nameCell = document.createElement('td');
+                    nameCell.innerText = attr.name;
+                    nameCell.className = 'attribute-name';
+
+                    const valueCell = document.createElement('td');
+                    let valueText = attr.value;
+                    if (attr.uom) {
+                        valueText += ' ' + attr.uom;
+                    }
+                    valueCell.innerText = valueText;
+
+                    row.appendChild(nameCell);
+                    row.appendChild(valueCell);
+                    tbody.appendChild(row);
+                });
+
+                table.appendChild(tbody);
+                cardBody.appendChild(table);
+                productCard.appendChild(cardBody);
+                resultsDiv.appendChild(productCard);
+            });
+        }
+
+        window.onload = loadJSONData;
+    </script>
+</body>
+</html>

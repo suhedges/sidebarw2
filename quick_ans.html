@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Answers</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .accordion-container {
+            width: 100%;
+            max-width: 280px;
+            margin: auto;
+            text-align: center;
+        }
+
+        .accordion {
+            background-color: #ffffff;
+            color: black;
+            cursor: pointer;
+            padding: 15px;
+            width: 100%;
+            text-align: left;
+            border: none;
+            outline: none;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .accordion.active {
+            background-color: #3D7190; 
+            color: white;
+        }
+
+        .accordion:hover {
+            background-color: #3D7190;
+            color: white;
+        }
+
+        .accordion:after {
+            content: '\002B';
+            color: white;
+            font-weight: bold;
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .accordion.active:after {
+            content: "\2212"; 
+        }
+
+        .panel {
+            padding: 0 15px;
+            display: none;
+            background-color: white;
+            overflow: hidden;
+            border-radius: 0 0 8px 8px;
+            margin-top: -5px;
+            margin-bottom: 10px;
+            box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel p {
+            padding: 15px 0;
+            font-size: 14px;
+            color: #1E1E1E;
+        }
+
+        /* Optional: Smooth transition for panels */
+        .panel.show {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="accordion-container">
+        <button class="accordion">How to Buy Products</button>
+        <div class="panel">
+            <p>To purchase products directly from our website, you first need to <a href="https://www.tristate-bearing.com/Register" target="_blank" rel="noopener noreferrer">register here</a>. Once registered, you can browse through the categories or use the search bar to find items. Add items to your cart, proceed to checkout, and complete the payment process to finalize your order.</p>
+        </div>
+
+        <button class="accordion">Shipping Times and Costs</button>
+        <div class="panel">
+            <p>Shipping times vary based on your location, the shipping method selected, and item availability. Standard shipping typically takes 3-5 business days for in-stock items, while expedited options are available. Some items may have a longer lead time, so we recommend inquiring about uncommon items before purchasing. Shipping costs are calculated at checkout.</p>
+        </div>
+
+        <button class="accordion">Return and Exchange Policy</button>
+        <div class="panel">
+            <p>We accept returns and exchanges within 30 days of purchase. Items must be in their original condition, and a receipt is required. Please contact <a href="mailto:customerservice@tristate-bearing.com">customer service</a> for more details on how to initiate a return or exchange.</p>
+        </div>
+
+        <button class="accordion">Tracking Your Order</button>
+        <div class="panel">
+            <p>After your order is shipped, you will receive a tracking number via email, if available. While we strive to provide tracking information as often as we can, please note that tracking numbers may not always be available for all shipments.</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var acc = document.getElementsByClassName("accordion");
+            for (var i = 0; i < acc.length; i++) {
+                acc[i].addEventListener("click", function() {
+                    // Toggle active class for the clicked accordion
+                    this.classList.toggle("active");
+
+                    // Toggle the display of the associated panel
+                    var panel = this.nextElementSibling;
+                    panel.classList.toggle("show");
+
+                    // Optionally, close other panels
+                    for (var j = 0; j < acc.length; j++) {
+                        if (acc[j] !== this) {
+                            acc[j].classList.remove("active");
+                            acc[j].nextElementSibling.classList.remove("show");
+                        }
+                    }
+                });
+            }
+
+            // Ensure all links open in a new tab with noreferrer
+            document.querySelectorAll('a[href]').forEach(function(link) {
+                link.setAttribute('target', '_blank');
+                link.setAttribute('rel', 'noreferrer');
+            });
+        });
+    </script>
+</body>
+</html>

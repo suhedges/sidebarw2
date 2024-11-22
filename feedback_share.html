@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Step Form with Number Rating</title>
+    <style>
+        /* Reset some default styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 30px 40px;
+            width: 400px;
+            max-width: 90%;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .header {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            color: #333;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            background-color: #fdfdfd;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .form-group textarea {
+            height: 120px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+            outline: none;
+        }
+
+        .required {
+            color: red;
+            margin-left: 2px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .buttons button {
+            flex: 1;
+            padding: 12px 0;
+            margin: 0 5px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .buttons button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .buttons .back-btn {
+            background-color: #6c757d;
+            color: #fff;
+        }
+
+        .buttons .back-btn:hover:not(:disabled) {
+            background-color: #5a6268;
+        }
+
+        .buttons .next-btn,
+        .buttons .send-btn {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .buttons .next-btn:hover:not(:disabled),
+        .buttons .send-btn:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+
+        .buttons button:disabled {
+            background-color: #a0a0a0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .rating-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .rating-group div {
+            flex: 1 0 30px;
+            margin: 5px;
+            text-align: center;
+        }
+
+        .rating-group label {
+            display: block;
+            font-size: 14px;
+            color: #555;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: 2px solid transparent;
+            padding: 10px 0;
+            border-radius: 50%;
+            transition: all 0.3s;
+            width: 40px;
+            height: 40px;
+            line-height: 20px;
+            margin: 0 auto;
+        }
+
+        .rating-group input[type="radio"] {
+            display: none;
+        }
+
+        .rating-group input[type="radio"]:checked + label {
+            border-color: #007bff;
+            background-color: #e0f0ff;
+            color: #007bff;
+            transform: scale(1.1);
+        }
+
+        .rating-group .description {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #777;
+            margin-top: -10px;
+            padding: 0 5px;
+        }
+
+        /* Success and Error Messages */
+        .message {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .message.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .message .icon {
+            font-size: 50px;
+            margin-bottom: 20px;
+        }
+
+        .message.success .icon {
+            color: #28a745;
+        }
+
+        .message.error .icon {
+            color: #dc3545;
+        }
+
+        .message .text {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .message button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .message button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 500px) {
+            .container {
+                padding: 20px;
+            }
+
+            .buttons button {
+                font-size: 14px;
+                padding: 10px 0;
+            }
+
+            .rating-group label {
+                width: 35px;
+                height: 35px;
+                font-size: 12px;
+            }
+
+            .message .icon {
+                font-size: 40px;
+            }
+
+            .message .text {
+                font-size: 16px;
+            }
+
+            .message button {
+                font-size: 14px;
+                padding: 8px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <form id="multiStepForm">
+        <!-- Step 1 -->
+        <div class="step step-1">
+            <div class="header">Who are you?</div>
+            <div class="form-group">
+                <label for="name">Your Name <span class="required">*</span></label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Your Email <span class="required">*</span></label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="buttons">
+                <button type="button" class="back-btn" disabled>Back</button>
+                <button type="button" class="next-btn" disabled>Next</button>
+            </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step step-2" style="display: none;">
+            <div class="header">How likely are you to recommend our service?</div>
+            <input type="hidden" name="access_key" value="57d23900-98bb-4963-89a1-f08ffe1d2bf8">
+            <input type="hidden" name="subject" value="New Submission from Web3Forms">
+            <input type="hidden" name="name" id="hiddenName">
+            <input type="hidden" name="email" id="hiddenEmail">
+            <input type="checkbox" name="botcheck" style="display: none;">
+
+            <div class="rating-group">
+                <!-- Rating Inputs -->
+                <div>
+                    <input type="radio" id="zero" name="nps" value="0" class="navigate peer hidden" data-step="2">
+                    <label for="zero">0</label>
+                </div>
+                <div>
+                    <input type="radio" id="one" name="nps" value="1" class="navigate peer hidden" data-step="2">
+                    <label for="one">1</label>
+                </div>
+                <div>
+                    <input type="radio" id="two" name="nps" value="2" class="navigate peer hidden" data-step="2">
+                    <label for="two">2</label>
+                </div>
+                <div>
+                    <input type="radio" id="three" name="nps" value="3" class="navigate peer hidden" data-step="2">
+                    <label for="three">3</label>
+                </div>
+                <div>
+                    <input type="radio" id="four" name="nps" value="4" class="navigate peer hidden" data-step="2">
+                    <label for="four">4</label>
+                </div>
+                <div>
+                    <input type="radio" id="five" name="nps" value="5" class="navigate peer hidden" data-step="2">
+                    <label for="five">5</label>
+                </div>
+                <div>
+                    <input type="radio" id="six" name="nps" value="6" class="navigate peer hidden" data-step="2">
+                    <label for="six">6</label>
+                </div>
+                <div>
+                    <input type="radio" id="seven" name="nps" value="7" class="navigate peer hidden" data-step="2">
+                    <label for="seven">7</label>
+                </div>
+                <div>
+                    <input type="radio" id="eight" name="nps" value="8" class="navigate peer hidden" data-step="2">
+                    <label for="eight">8</label>
+                </div>
+                <div>
+                    <input type="radio" id="nine" name="nps" value="9" class="navigate peer hidden" data-step="2">
+                    <label for="nine">9</label>
+                </div>
+                <div>
+                    <input type="radio" id="ten" name="nps" value="10" class="navigate peer hidden" data-step="2">
+                    <label for="ten">10</label>
+                </div>
+            </div>
+
+            <div class="rating-group description">
+                <span>Less Likely</span>
+                <span>Very Likely</span>
+            </div>
+
+            <div class="form-group">
+                <label for="comments">Can you tell us a bit more about your score? <span class="required">*</span></label>
+                <textarea id="comments" name="comments" required></textarea>
+            </div>
+
+            <div class="buttons">
+                <button type="button" class="back-btn">Back</button>
+                <button type="submit" class="send-btn" disabled>Send</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Success Message -->
+    <div class="message success">
+        <div class="icon">✅</div>
+        <div class="text">Thank you! Your message has been sent successfully.</div>
+        <button type="button" onclick="resetForm()">Submit Another Response</button>
+    </div>
+
+    <!-- Error Message -->
+    <div class="message error">
+        <div class="icon">❌</div>
+        <div class="text">Oops! Something went wrong. Please try again later.</div>
+        <button type="button" onclick="retrySubmission()">Retry</button>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const step1 = document.querySelector('.step-1');
+        const step2 = document.querySelector('.step-2');
+        const nextBtn = document.querySelector('.next-btn');
+        const backBtns = document.querySelectorAll('.back-btn');
+        const sendBtn = document.querySelector('.send-btn');
+        const multiStepForm = document.getElementById('multiStepForm');
+        const successMessage = document.querySelector('.message.success');
+        const errorMessage = document.querySelector('.message.error');
+
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const hiddenName = document.getElementById('hiddenName');
+        const hiddenEmail = document.getElementById('hiddenEmail');
+        const ratingInputs = document.querySelectorAll('.rating-group input[type="radio"]');
+        const commentsInput = document.getElementById('comments');
+
+        // Validate Step 1
+        function validateStep1() {
+            const name = nameInput.value.trim();
+            const email = emailInput.value.trim();
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return name.length > 0 && emailPattern.test(email);
+        }
+
+        // Validate Step 2
+        function validateStep2() {
+            const ratingSelected = Array.from(ratingInputs).some(radio => radio.checked);
+            const comments = commentsInput.value.trim();
+            return ratingSelected && comments.length > 0;
+        }
+
+        // Enable or disable Next button
+        function toggleNextButton() {
+            nextBtn.disabled = !validateStep1();
+        }
+
+        // Enable or disable Send button
+        function toggleSendButton() {
+            sendBtn.disabled = !validateStep2();
+        }
+
+        // Event listeners for Step 1 inputs
+        nameInput.addEventListener('input', toggleNextButton);
+        emailInput.addEventListener('input', toggleNextButton);
+
+        // Event listeners for Step 2 inputs
+        ratingInputs.forEach(radio => {
+            radio.addEventListener('change', toggleSendButton);
+        });
+        commentsInput.addEventListener('input', toggleSendButton);
+
+        // Next button click
+        nextBtn.addEventListener('click', function() {
+            if (validateStep1()) {
+                // Set hidden inputs
+                hiddenName.value = nameInput.value.trim();
+                hiddenEmail.value = emailInput.value.trim();
+
+                // Transition to Step 2
+                step1.style.display = 'none';
+                step2.style.display = 'block';
+            }
+        });
+
+        // Back buttons click
+        backBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Transition back to Step 1
+                step2.style.display = 'none';
+                step1.style.display = 'block';
+            });
+        });
+
+        // Form submission
+        multiStepForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            if (!validateStep2()) {
+                return;
+            }
+
+            // Collect form data
+            const formData = new FormData(multiStepForm);
+
+            // Submit via fetch
+            fetch('https://api.web3forms.com/submit', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    multiStepForm.reset(); // Reset the form for next submission
+                    step1.style.display = 'block';
+                    step2.style.display = 'none';
+                    successMessage.classList.add('active');
+                } else {
+                    // Show error message
+                    errorMessage.classList.add('active');
+                    console.error('Submission failed:', data);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Show error message
+                errorMessage.classList.add('active');
+            });
+        });
+
+        // Reset form to initial state
+        window.resetForm = function() {
+            // Hide messages
+            successMessage.classList.remove('active');
+            errorMessage.classList.remove('active');
+
+            // Reset form
+            multiStepForm.reset();
+
+            // Show Step 1
+            step2.style.display = 'none';
+            step1.style.display = 'block';
+
+            // Disable buttons
+            nextBtn.disabled = true;
+            sendBtn.disabled = true;
+        }
+
+        // Retry submission
+        window.retrySubmission = function() {
+            // Hide messages
+            successMessage.classList.remove('active');
+            errorMessage.classList.remove('active');
+
+            // Show Step 2 (assuming user wants to retry)
+            step1.style.display = 'none';
+            step2.style.display = 'block';
+        }
+    });
+</script>
+
+</body>
+</html>

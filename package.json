@@ -1,0 +1,16 @@
+{
+  "name": "chat-application",
+  "version": "1.0.0",
+  "engines": {
+    "node": "16.x"
+  },
+  "scripts": {
+    "start": "node backend.js"
+  },
+  "dependencies": {
+    "openai": "^4.70.1",
+    "express": "^5.0.1",
+    "body-parser": "^2.0.2",
+    "dotenv": "^16.4.5"
+  }
+}

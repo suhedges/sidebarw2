@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with Bert</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+        :root {
+            --background-color: #ffffff;
+            --chat-background: #ffffff;
+            --user-message: #007bff;
+            --assistant-message: #e0e0e0;
+            --input-background: #f0f0f0;
+            --button-background: #007bff;
+            --button-hover: #0056b3;
+            --button-active: #004494;
+            --text-color: #333333;
+            --placeholder-color: #888888;
+            --scrollbar-track: #e0e0e0;
+            --scrollbar-thumb: #007bff;
+        }
+
+        body, html {
+            font-family: 'Roboto', sans-serif;
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--background-color);
+        }
+
+        .autocomplete-items {
+            border: 1px solid #d4d4d4;
+            background-color: #ffffff;
+            border-radius: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 0 auto;
+            min-width: 300px;
+            max-width: 500px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: fixed;
+            z-index: 200;
+        }
+
+        .autocomplete-item {
+            padding: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .autocomplete-item:hover {
+            background-color: #e9e9e9;
+        }
+
+        .autocomplete-active {
+            background-color: #3D7190 !important;
+            color: #ffffff;
+        }
+
+        #selected-assistant-container {
+            margin-bottom: 10px;
+            width: 100%;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .assistant-tag {
+            display: inline-flex;
+            align-items: center;
+            background-color: #3D7190; /* Adjust color as needed */
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .assistant-tag-remove {
+            margin-left: 8px;
+            cursor: pointer;
+            font-size: 1.2em;
+            line-height: 1;
+        }
+
+        #chat-container {
+            width: 80%;
+            height: 100%;
+            max-width: 100%;
+            background-color: var(--chat-background);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: fadeIn 0.5s ease;
+            justify-content: center; 
+            align-items: center; 
+            position: relative;
+        }
+
+        .assistant-name {
+            font-weight: bold;
+            font-size: 1em;
+            margin-right: 5px;
+            color: #3D7190; 
+        }
+
+        .assistant-content {
+            color: var(--text-color);
+            font-size: 0.9em;
+            display: inline-block; 
+            max-width: 100%; 
+            word-wrap: break-word; 
+            overflow-wrap: break-word; 
+            white-space: pre-wrap;
+            box-sizing: border-box;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        #header {
+            background-color: #ffffff;
+            padding: 15px;
+            text-align: center;
+            color: #182848;
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+
+        #messages {
+            flex-grow: 1;
+            width: 90%;
+            padding: 35px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+        }
+
+        #messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #messages::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+            border-radius: 10px;
+        }
+
+        #messages::-webkit-scrollbar-thumb {
+            background: #3D7190;
+            border-radius: 4px;
+        }
+
+        /* New Styles for Suggestion Container */
+        #suggestion-container {
+            width: 30%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        /* Suggestion Box with Sliding Animation */
+        .suggestion-box {
+            background-color: #f0f0f0;
+            border: 1px solid #cccccc;
+            border-radius: 10px;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 0.9em;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transform: translateY(0);
+            opacity: 0;
+            animation: slideDown 0.3s forwards;
+            position: absolute;
+            max-width: 70%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .suggestion-box span {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        @keyframes slideDown {
+            to {
+                transform: translateY(-45%);
+                opacity: 1;
+            }
+        }
+
+        .suggestion-box.hide {
+            animation: slideUp 0.3s forwards;
+        }
+
+        @keyframes slideUp {
+            to {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+        }
+
+        .suggestion-close {
+            background: none;
+            position: absolute;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: var(--text-color);
+            right: 10px;
+            top: 2px;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .suggestion-close:hover {
+            color: #ff0000;
+        }
+
+        .message {
+            width: auto;
+            max-width: 500px;
+            padding: 12px 18px;
+            border-radius: 20px;
+            position: relative;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideIn 0.4s forwards;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            word-break: break-word; 
+            overflow-wrap: break-word; 
+            font-size: 1em; 
+            line-height: 1.1;
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-message {
+            background-color: #3D7190;
+            color: #ffffff;
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+            position: relative;
+        }
+
+        .assistant-message {
+            background-color: var(--assistant-message);
+            color: var(--text-color);
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+            position: relative;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+        }
+
+        .typing-indicator div {
+            width: 8px;
+            height: 8px;
+            background-color: var(--text-color);
+            border-radius: 50%;
+            animation: blink 1.4s infinite both;
+        }
+
+        .typing-indicator div:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator div:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+            0%, 80%, 100% { opacity: 0; }
+            40% { opacity: 1; }
+        }
+
+        #input-container {
+            display: flex;
+            flex-direction: column; 
+            padding: 15px;
+            background-color: #ffffff;
+            align-items: center;
+            gap: 10px;
+            border-top: 1px solid #e0e0e0;
+            width: 100%;
+            box-sizing: border-box; 
+        }
+
+        #input-wrapper {
+            display: flex;
+            width: 100%;
+            align-items: stretch;
+            justify-content: center;
+            margin: 0 auto;
+            margin-bottom: 10px;
+            position: relative; 
+        }
+
+        #message-input {
+            flex: 1; /* Allows the textarea to take up available space */
+            padding: 10px 15px;
+            z-index: 210;
+            border-top: 2px solid var(--text-color);
+            border-bottom: 2px solid var(--text-color);
+            border-left: none;
+            border-right: none;
+            border-radius: 0px;
+            background-color: #ffffff;
+            color: var(--text-color);
+            font-size: 1em;
+            outline: none;
+            resize: none; 
+            overflow: hidden; 
+            height: 100%;
+            max-height: 100px;
+            line-height: 1.2;
+            box-sizing: border-box;
+            transition: height 0.2s ease; 
+        }
+
+        #message-input::placeholder {
+            color: var(--placeholder-color);
+        }
+
+        #message-input:focus {
+
+        }
+
+        .prompt-button-alt1 {
+            background: #3D7190;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+            color: #fff;
+            max-width: 95%;
+            min-width: 75%;
+        }
+
+        .prompt-button-alt2 {
+            background: #84a5b9;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+            color: #fff;
+            max-width: 95%;
+            min-width: 75%;
+        }
+
+        .exit-prompts-button, .back-button {
+            background: #053856;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 10px;
+            color: #fff;
+            transition: background-color 0.3s;
+            max-width: 95%;
+            min-width: 75%;
+        }
+
+        .sub-prompt-button {
+            background: #84A5B9;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+            color: #fff;
+            max-width: 95%;
+            min-width: 75%;
+        }
+
+        .prompt-button-alt1:hover,
+        .prompt-button-alt2:hover,
+        .exit-prompts-button:hover,
+        .back-button:hover,
+        .sub-prompt-button:hover {
+            filter: brightness(1.1);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #question-mark-icon {
+            flex: 0 0 50px; 
+            border-radius: 20% 0% 0% 20%;
+            height: 100%; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            padding-left: 5px; 
+            border-top: 2px solid var(--text-color);
+            border-bottom: 2px solid var(--text-color);
+            border-left: 2px solid var(--text-color);
+            border-right: none;
+            background-color: #ffffff;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-size: 1.2em;
+        }
+
+        #send-button {
+            flex: 0 0 50px; 
+            height: 100%; 
+            border-radius: 0% 20% 20% 0%;
+            border-top: 2px solid var(--text-color);
+            border-bottom: 2px solid var(--text-color);
+            border-left: none;
+            border-right: 2px solid var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            padding: 0; 
+            background-color: #ffffff;
+            color: #d4d4d4;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s, opacity 0.2s ease;
+            font-size: 1.2em;
+        }
+        #send-button:hover {
+
+        }
+
+        #send-button:active {
+
+        }
+
+        #buttons-wrapper {
+            width: 700px;
+            max-width: 900px;
+            display: flex;
+            justify-content: space-between; 
+            align-items: center;
+            padding: 0; 
+        }
+
+        .question-icon {
+            width: 24px; 
+            height: 24px;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        #question-mark-icon:hover .question-icon {
+            transform: scale(1.1);
+            opacity: 0.8;
+        }
+
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.6);
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        .send-icon {
+            width: 24px;
+            height: 24px;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        #send-button:hover .send-icon {
+            transform: scale(1.1);
+            opacity: 0.8;
+        }
+
+        .send-icon.sent {
+            transform: rotate(45deg);
+            opacity: 0;
+        }
+
+        #prompt-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+            max-width: 95%;
+            min-width: 75%;
+        }
+
+        .assistant-content ul {
+            padding-left: 20px;
+            margin: 5px 0;
+        }
+
+        .assistant-content li {
+            margin-bottom: 5px;
+        }
+
+        .assistant-content strong {
+            font-weight: 700;
+        }
+
+        .assistant-content a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .assistant-content a:hover {
+            text-decoration: underline;
+        }
+
+        .checkmark {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #182848;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .checkmark::after {
+            content: '✔';
+            color: #182848;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .checkmark.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .checkmark.visible::after {
+            opacity: 1;
+        }
+
+        .spinner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #ffffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .spinner.visible {
+            opacity: 1;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .tooltip {
+            position: absolute;
+            left: 175%;
+            bottom: 100%;
+            transform: translate(-50%, -10px);
+            margin-bottom: 10px;
+            background-color: #f0f0f0;
+            color: #2e5670;
+            border: solid 1px #2e5670;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.6em;
+            white-space: nowrap;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .tooltip-arrow {
+            color: #d4d4d4;
+            position: absolute;
+            top: 100%;
+            left: 10%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid #2e5670;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        /* Hide the tooltip */
+        .tooltip.hidden {
+            display: none;
+        }
+
+        #welcome-message {
+            text-align: center;
+            font-size: .9em;
+            max-width: 500px;
+            color: var(--placeholder-color);
+            padding: 10px;
+            border-radius: 10px;
+            background-color: #f0f0f0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        #welcome-message p {
+            margin: 0 0 5px; 
+        }
+
+        #welcome-message ul {
+            list-style-type: none; 
+            padding-left: 5px; /* Keep some padding for indentation */
+            margin: 5px 0; /* Reduce space above and below list */
+        }
+
+        #welcome-message li {
+            margin-bottom: 5px; /* Adjust space between list items */
+            line-height: 1.2; /* Control line spacing within list items */
+        }
+
+        #quick-answers-link {
+            display: inline-block;
+            background-color: #3D7190;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #quick-answers-link:hover {
+            background-color: #2e5670;
+        }
+
+        @media (max-width: 500px) {
+            #chat-container {
+                width: 80%;
+                height: 100vh;
+            }
+
+            #input-container {
+                padding: 10px;
+            }
+
+            #message-input {
+                padding: 8px 12px;
+            }
+
+            #send-button {
+                padding: 8px 12px;
+                font-size: 1em;
+            }
+
+            #suggestion-container {
+                width: 90%;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/linkifyjs@4.1.3/dist/linkify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/linkify-html@4.1.3/dist/linkify-html.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="messages">
+            <div id="welcome-message">
+                <p><strong>Hi, Bert here!</strong></p>
+                <p>I'm here to help you navigate and find the parts you need. Currently, I specialize in <b>Bearings</b> and <b>Seals</b></p>
+                <ul>
+                    <li>I can help find specific parts by size and type – for example, try asking "<b>I need a ball bearing with a 30mm ID, 62mm OD, and a 16mm width.</b>"</li>
+                    <li>I can help provide specs for a part number – for example, "<b>What are the specs for a 6203LL?</b>"</li>
+                </ul>
+                <p>Let’s get started!</p>
+                <p><a href="#" id="quick-answers-link">Click here to get quick answers to common questions!</a></p>
+            </div>
+            <div id="prompt-container"></div>
+        </div>
+
+        <!-- New Suggestion Container -->
+        <div id="suggestion-container"></div>
+
+        <div id="selected-assistant-container"></div>
+        <div id="input-wrapper" style="position: relative;">
+            <div id="question-icon-wrapper" style="position: relative;">
+                <button id="question-mark-icon" title="Show Prompts">
+                    <img src="question_mark.png" alt="Help" class="question-icon">
+                </button>
+                <div id="tooltip" class="tooltip hidden">
+                    Click for quick answers
+                    <span class="tooltip-arrow"></span>
+                </div>
+            </div>
+            <textarea id="message-input" placeholder="Type your message here..." maxlength="10000"></textarea>
+            <button id="send-button" title="Send">
+                <img src="plane_send.png" alt="Send" class="send-icon">
+                <span class="checkmark"></span>
+                <div class="spinner"></div>
+            </button>
+        </div>
+
+    <script>
+        const renderer = new marked.Renderer();
+
+        const messagesContainer = document.getElementById('messages');
+        const messageInput = document.getElementById('message-input');
+        const autocompleteList = document.getElementById('autocomplete-list');
+        const sendButton = document.getElementById('send-button');
+        const sendIcon = document.querySelector('.send-icon');
+        const checkmark = document.querySelector('.checkmark');
+        const spinner = document.querySelector('.spinner');
+        const welcomeMessage = document.getElementById('welcome-message');
+        const inputWrapper = document.getElementById('input-wrapper');
+        const suggestionContainer = document.getElementById('suggestion-container'); 
+        const promptContainer = document.getElementById('prompt-container');
+        let threadId = null;
+        let charactersTypedAfterSuggestion = 0; // Counter for auto-hide
+        let suggestionTimeout = null; // To store the timeout
+        let currentFocus = -1;
+        
+
+        const assistantOptions = [
+            { name: 'Bearings', id: 'asst_BvrFPSsSNhed6wOdnjwjH2GK' },
+            { name: 'Belt, Sheaves & Pulleys', id: 'asst_nWlvrBzNbpfqxC0z55eJG119' },
+            { name: 'Bushings', id: 'asst_hwbV8SbthPoZV0gAVXGsbkLz' },
+            { name: 'Chains & Sprockets', id: 'asst_ui4Np3x7n6We4gba84VPpyiH' },
+            { name: 'Clutches & Brakes', id: 'asst_BvrFPSsSNhed6wOdnjwjH2GK' },
+            { name: 'Conveyors & Conv. Parts', id: 'asst_BvrFPSsSNhed6wOdnjwjH2GK' },
+            { name: 'Couplings', id: 'asst_AyH6FYIuJ8OEEJe7hUVXm79R' },
+            { name: 'Electric Motors', id: 'asst_6xwqBDUVMFTKF4NDavLl9HKP' },
+            { name: 'Gear Reducers', id: 'asst_BvrFPSsSNhed6wOdnjwjH2GK' },
+            { name: 'Linear Motion', id: 'asst_qmvcHr8wU8uZrrm6z9mBXILw' },
+            { name: 'Seals, Gaskets & Packing', id: 'asst_Bbx0pJwQfjqoeVOkLVFXbfpF' },
+        ];
+
+        // Default assistant ID
+        let assistantId = 'asst_BvrFPSsSNhed6wOdnjwjH2GK';
+
+        renderer.link = function(href, title, text) {
+            let link = `<a href="${href}" target="_blank" rel="noopener noreferrer">`;
+
+            if (title) {
+                link += `${text}</a>`;
+            } else {
+                link += `${text}</a>`;
+            }
+
+            return link;
+        };
+
+        marked.setOptions({
+            renderer: renderer,
+            breaks: true, // Enable line breaks
+            // more options here if needed
+        });
+
+        document.getElementById('quick-answers-link').addEventListener('click', function(event) {
+            event.preventDefault(); // Prevent default link behavior
+            displayPrompts();
+        });
+
+        messageInput.addEventListener('input', function(e) {
+            console.log('Input event fired');
+            currentFocus = -1;
+            const val = this.value;
+            closeAllLists();
+            const atIndex = val.lastIndexOf('@');
+            if (atIndex === -1) {
+                return false;
+            }
+
+            const query = val.slice(atIndex + 1).toLowerCase();
+
+            const filteredOptions = assistantOptions.filter(option =>
+                option.name.toLowerCase().includes(query)
+            );
+
+            console.log('Filtered Options:', filteredOptions);
+
+            if (filteredOptions.length === 0) {
+                return false;
+            }
+
+            // Create a DIV element that will contain the items (values)
+            const listDiv = document.createElement('div');
+            listDiv.setAttribute('id', 'autocomplete-list');
+            listDiv.setAttribute('class', 'autocomplete-items');
+            const chatContainer = document.getElementById('chat-container');
+            const inputWrapper = document.getElementById('input-wrapper');
+            chatContainer.insertBefore(listDiv, inputWrapper);
+
+            // For each item in the array...
+            filteredOptions.forEach((option, index) => {
+                // Create a DIV element for each matching element
+                const itemDiv = document.createElement('div');
+                itemDiv.innerHTML = `<strong>${option.name}</strong>`;
+                itemDiv.classList.add('autocomplete-item');
+                itemDiv.addEventListener('click', function(e) {
+                    // Insert the value for the autocomplete text field
+                    displaySelectedAssistant(option.name);
+                    messageInput.value = val.slice(0, atIndex).trim();
+                    assistantId = option.id; // Set the assistant ID based on selection
+                    closeAllLists();
+                });
+                // Append the itemDiv to the listDiv
+                listDiv.appendChild(itemDiv);
+            });
+        });
+
+        // Close all autocomplete lists in the document, except the one passed as an argument
+        function closeAllLists(elmnt) {
+            const items = document.getElementsByClassName('autocomplete-items');
+            for (let i = 0; i < items.length; i++) {
+                if (elmnt !== items[i] && elmnt !== messageInput) {
+                    items[i].parentNode.removeChild(items[i]);
+                }
+            }
+        }
+
+        // Close the list when clicking outside
+        document.addEventListener('click', function(e) {
+            closeAllLists(e.target);
+        });
+
+        // Handle keyboard navigation
+        messageInput.addEventListener('keydown', function(e) {
+            let items = document.getElementById('autocomplete-list');
+            if (items) items = items.getElementsByClassName('autocomplete-item');
+            if (e.keyCode === 40) {
+                // Arrow DOWN key
+                currentFocus++;
+                addActive(items);
+            } else if (e.keyCode === 38) {
+                // Arrow UP key
+                currentFocus--;
+                addActive(items);
+            } else if (e.keyCode === 13) {
+                // ENTER key
+                e.preventDefault();
+                if (currentFocus > -1) {
+                    if (items) items[currentFocus].click();
+                }
+            }
+        });
+
+        function addActive(items) {
+            if (!items) return false;
+            removeActive(items);
+            if (currentFocus >= items.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = items.length - 1;
+            items[currentFocus].classList.add('autocomplete-active');
+        }
+
+        function removeActive(items) {
+            for (let i = 0; i < items.length; i++) {
+                items[i].classList.remove('autocomplete-active');
+            }
+        }
+
+
+        function addMessageToChat(message, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${sender === 'user' ? 'user-message' : 'assistant-message'}`;
+
+            if (sender === 'assistant') {
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'assistant-name';
+                nameSpan.textContent = 'Bert: ';
+
+                const contentSpan = document.createElement('span');
+                contentSpan.className = 'assistant-content';
+
+                // Step 1: Convert URLs in plain text to links using Linkify
+                const linkifiedText = linkifyHtml(message, {
+                    defaultProtocol: 'https',
+                    target: '_blank',
+                    rel: 'noopener noreferrer'
+                });
+
+                // Step 2: Convert any Markdown syntax in the message to HTML
+                const rawHtml = marked.parse(linkifiedText);
+
+                // Step 3: Sanitize the resulting HTML to prevent XSS attacks
+                const sanitizedHtml = DOMPurify.sanitize(rawHtml, { ADD_ATTR: ['target', 'rel'] });
+
+                // Step 4: Insert the sanitized HTML into the content span
+                contentSpan.innerHTML = sanitizedHtml;
+
+                messageElement.appendChild(nameSpan);
+                messageElement.appendChild(contentSpan);
+            } else {
+                // For user messages, keep it as plain text
+                messageElement.textContent = message;
+            }
+
+            messagesContainer.appendChild(messageElement);
+            scrollToBottom();
+        }
+
+        function showTypingIndicator() {
+            const typingElement = document.createElement('div');
+            typingElement.className = 'typing-indicator';
+            typingElement.id = 'typing-indicator';
+            typingElement.innerHTML = '<div></div><div></div><div></div>';
+            messagesContainer.appendChild(typingElement);
+            scrollToBottom();
+        }
+
+        // Function to remove typing indicator
+        function removeTypingIndicator() {
+            const typingElement = document.getElementById('typing-indicator');
+            if (typingElement) {
+                messagesContainer.removeChild(typingElement);
+            }
+        }
+
+        // Function to scroll to the latest message
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Function to create ripple effect
+        function createRipple(event) {
+            const button = event.currentTarget;
+            const rect = button.getBoundingClientRect();
+            const ripple = document.createElement('span');
+            const size = Math.max(button.clientWidth, button.clientHeight);
+            const x = event.clientX - rect.left - size / 2;
+            const y = event.clientY - rect.top - size / 2;
+
+            ripple.style.width = ripple.style.height = `${size}px`;
+            ripple.style.left = `${x}px`;
+            ripple.style.top = `${y}px`;
+            ripple.classList.add('ripple');
+
+            // Remove existing ripple
+            const existingRipple = button.getElementsByClassName('ripple')[0];
+            if (existingRipple) {
+                existingRipple.remove();
+            }
+
+            button.appendChild(ripple);
+        }
+
+        // Function to handle send button animation
+        function animateSendButton() {
+            // Transform send icon to checkmark
+            sendIcon.classList.add('sent');
+            checkmark.classList.add('visible');
+
+            // Show spinner
+            spinner.classList.add('visible');
+
+            // After animation, revert back to original state
+            setTimeout(() => {
+                sendIcon.classList.remove('sent');
+                checkmark.classList.remove('visible');
+                spinner.classList.remove('visible');
+            }, 600); 
+        }
+
+        function displaySelectedAssistant(assistantName) {
+            const container = document.getElementById('selected-assistant-container');
+            container.innerHTML = '';
+
+            const assistantTag = document.createElement('div');
+            assistantTag.className = 'assistant-tag';
+            assistantTag.textContent = assistantName;
+
+            // Add a remove button to allow the user to deselect the assistant
+            const removeButton = document.createElement('span');
+            removeButton.className = 'assistant-tag-remove';
+            removeButton.innerHTML = '&times;';
+            removeButton.onclick = function() {
+                // Reset to default assistant ID
+                assistantId = 'asst_BvrFPSsSNhed6wOdnjwjH2GK';
+                container.innerHTML = '';
+            };
+
+            assistantTag.appendChild(removeButton);
+            container.appendChild(assistantTag);
+        }
+
+
+        // Function to handle send message
+        async function handleSendMessage(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            
+            const val = messageInput.value;
+            let userMessage = val.trim();
+            
+            if (!userMessage) return;
+
+            // Use the assistantId as set by the selected assistant tag
+            // If no assistant is selected, use the default assistant ID
+            if (!assistantId) {
+                assistantId = 'asst_BvrFPSsSNhed6wOdnjwjH2GK'; // Default assistant ID
+            }
+
+            // Add the user's message to the chat
+            addMessageToChat(userMessage, 'user');
+            
+            // Clear the input area
+            messageInput.value = '';
+            resetTextareaHeight();
+            closeAllLists();
+
+            // Hide the welcome message if it's displayed
+            if (welcomeMessage) {
+                welcomeMessage.style.display = 'none';
+            }
+
+            // Hide prompts and suggestions after sending a message
+            exitPrompts();
+            removeSuggestion(); // Remove any existing suggestion
+            clearTimeout(suggestionTimeout); // Clear any existing timeout
+            charactersTypedAfterSuggestion = 0; // Reset counter
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            // Animate the send button
+            animateSendButton();
+
+            try {
+                // Send the POST request with the user's message and selected assistant ID
+                const response = await fetch('https://vanilla-wild-cymbal.glitch.me/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: userMessage,
+                        threadId: threadId,
+                        assistantId: assistantId // Include the assistant ID here
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+                threadId = data.threadId;
+
+                // Remove the typing indicator and display the assistant's response
+                removeTypingIndicator();
+                addMessageToChat(data.response, 'assistant');
+            } catch (error) {
+                console.error('Error:', error);
+                removeTypingIndicator();
+                addMessageToChat('Oops... there was an error processing your request.', 'assistant');
+            }
+        }
+
+        // PROMPTS AND SUBPROMPTS
+        const prompts = [
+            {
+                title: 'Website help',
+                subPrompts: [
+                    {
+                        title: 'How do I register?',
+                        response: `To create an account with Tri-State Bearing, follow these steps: Navigate to Registration: Click on the <a href="https://www.tristate-bearing.com/Register" target="_blank"><strong>Sign In/Register</strong></a> icon located at the top right corner of our website. Select Registration Type: Current Business Customers: Choose the <strong>I AM A CURRENT CUSTOMER BUT NEED AN ONLINE ACCOUNT</strong> tab. New Retail Customers: Select the <strong>New Retail Customer Account</strong> tab. Fill Out the Form: Provide the necessary details based on your customer type. Click the <strong>Register</strong> button to submit your information. Once your registration is complete, you can access your account to manage orders, favorites, and more.`
+
+                    },
+                    {
+                        title: 'How do I create or manage a saved cart?',
+                        response: 'To create a saved cart, add items to your cart, then click <strong>Save Cart</strong> when ready. To manage saved carts click <strong>My Account</strong> in the top right corner of the website, scroll until you see <strong>My Saved Carts</strong> and click.'
+                    },
+                    {
+                        title: 'How do I view and manage favorites?',
+                            response: `To access and organize your favorite products, click the <strong>My Account</strong> icon at the top right corner of the website. 
+Choose <strong>My Favorites</strong> from the drop-down menu. 
+Here you can manage favorites and see all your saved favorite items and groups. 
+You can rename, organize, delete favorite groups as needed, or delete any items you no longer wish to keep in your favorites. 
+Efficient management of your favorites enhances your shopping experience by providing quick access to preferred products.`
+                    },
+                    {
+                        title: 'How do I check open orders and order history?',
+                        response: 'To check open orders, click <strong>My Account</strong> in the top right corner of the website, scroll down and click <strong>Open Orders</strong> or <strong> Order History</strong>.'
+                    },
+                    {
+                        title: 'How do I place a quick order?',
+                        response: 'Click <strong>My Account</strong> in the top right corner of the page, select <strong>Quick Order Pad</strong>. You can enter items in manually, copy and paste them, or upload an xlsx file. </strong>Enter</strong> and </strong>Tab</strong> will switch rows and you can right-click for options like adding/removing rows and undo/redo. You have options to combine, separate or remove duplicates quickly. </strong>Quick Order</strong> supports up to 40 entries. You can download an xlsx template <a href="https://www.tristate-bearing.com/ASSETS/WEB_THEMES/ECOMMERCE_STD_TEMPLATE_V2/images/QuickCartExample.xlsx" target="_blank"><strong>here</strong></a>'
+                    }
+                ]
+            }
+        ];
+        function displayPrompts() {
+            promptContainer.innerHTML = ''; // Clear existing prompts
+
+            // Hide assistant and user messages
+            const messageElements = document.querySelectorAll('.message');
+            messageElements.forEach(message => message.classList.add('hidden'));
+
+            // **Hide the welcome message**
+            if (welcomeMessage) {
+                welcomeMessage.style.display = 'none';
+            }
+
+            prompts.forEach((prompt, index) => {
+                const promptButton = document.createElement('button');
+                promptButton.className = 'prompt-button';
+
+                // Apply alternating background gradients
+                if (index % 2 === 0) {
+                    promptButton.classList.add('prompt-button-alt1');
+                } else {
+                    promptButton.classList.add('prompt-button-alt2');
+                }
+
+                promptButton.textContent = prompt.title;
+                promptButton.onclick = () => displaySubPrompts(index);
+                promptContainer.appendChild(promptButton);
+            });
+
+            const exitButton = document.createElement('button');
+            exitButton.className = 'exit-prompts-button';
+            exitButton.textContent = 'Exit Prompts';
+            exitButton.onclick = exitPrompts;
+            promptContainer.appendChild(exitButton);
+        }
+
+        // Function to display sub-prompts
+        function displaySubPrompts(promptIndex) {
+            const promptContainer = document.getElementById('prompt-container');
+            promptContainer.innerHTML = ''; // Clear main prompts
+
+            // **Hide the welcome message**
+            if (welcomeMessage) {
+                welcomeMessage.style.display = 'none';
+            }
+
+
+            const backButton = document.createElement('button');
+            backButton.className = 'back-button';
+            backButton.textContent = '← Back';
+            backButton.onclick = displayPrompts;
+            promptContainer.appendChild(backButton);
+
+            prompts[promptIndex].subPrompts.forEach((subPrompt) => {
+                const subPromptButton = document.createElement('button');
+                subPromptButton.className = 'sub-prompt-button';
+                subPromptButton.textContent = subPrompt.title;
+                subPromptButton.onclick = () => handleEmbeddedResponse(subPrompt.response);
+                
+                // Apply gradient background to each sub-prompt button
+                subPromptButton.style.background = 'linear-gradient(135deg, #84A5B9, #9bbfd1)';
+                subPromptButton.style.color = '#fff';
+
+                promptContainer.appendChild(subPromptButton);
+            });
+        }
+
+        function exitPrompts() {
+            promptContainer.innerHTML = ''; // Clear prompt view
+
+            // Show assistant and user messages
+            const messageElements = document.querySelectorAll('.message');
+            messageElements.forEach(message => message.classList.remove('hidden'));
+
+            // **Show the welcome message again**
+            if (welcomeMessage) {
+                welcomeMessage.style.display = 'block'; // or use '' to reset to default
+            }
+        }
+
+        // Function to display embedded responses
+        function handleEmbeddedResponse(responseText) {
+            addMessageToChat(responseText, 'assistant');
+
+            // Optionally hide the prompts after selection
+            const promptContainer = document.getElementById('prompt-container');
+            promptContainer.innerHTML = '';
+            exitPrompts();
+        }
+
+        // Keywords and their corresponding suggestions
+        const keywordSuggestions = {
+            'register': 'Do you need help with the registration process?',
+            'saved cart': 'Would you like assistance with creating or managing saved carts?',
+            'order history': 'Need help with accessing your order history?',
+            'favorites': 'Do you want guidance on adding items to favorites?',
+            'open orders': 'Do you need help checking open orders?',
+            'quick order': 'Need help with placing a quick order?',
+            'business account': 'Would you like guidance on requesting a new business account?'
+        };
+        // Function to display suggestion with sliding animation
+        function displaySuggestion(suggestionText, responseText) {
+            // Check if a suggestion is already displayed
+            if (document.getElementById('suggestion-box')) return;
+
+            const suggestionBox = document.createElement('div');
+            suggestionBox.id = 'suggestion-box';
+            suggestionBox.className = 'suggestion-box';
+
+            // Add suggestion text and a close button
+            const suggestionTextSpan = document.createElement('span');
+            suggestionTextSpan.textContent = suggestionText;
+
+            const closeButton = document.createElement('button');
+            closeButton.className = 'suggestion-close';
+            closeButton.innerHTML = '&times;';
+            closeButton.onclick = () => hideSuggestion();
+
+            // When suggestion is clicked, display the response
+            suggestionTextSpan.onclick = () => {
+                hideSuggestion();
+                addMessageToChat(responseText, 'assistant');
+            };
+
+            suggestionBox.appendChild(suggestionTextSpan);
+            suggestionBox.appendChild(closeButton);
+
+            suggestionContainer.appendChild(suggestionBox);
+
+            charactersTypedAfterSuggestion = 0;
+            suggestionTimeout = setTimeout(() => {
+                hideSuggestion();
+            }, 30000);
+        }
+
+        // Function to handle suggestion display logic
+        function handleSuggestionDisplay(inputText) {
+            if (inputText.includes('register')) {
+                displaySuggestion('Do you need help with the registration process?', 'To register, follow the instructions under "Sign In/Register".');
+            } else if (inputText.includes('saved cart')) {
+                displaySuggestion('Need help with saved carts?', 'Select "My Saved Cart" under "My Account" to manage.');
+            } else if (inputText.includes('order history')) {
+                displaySuggestion('Need help with order history?', 'Visit "Orders History" in "My Account" to view your orders.');
+            } else if (inputText.includes('favorites')) {
+                displaySuggestion('Want guidance on managing favorites?', 'Use "My Favorites" under "My Account" to view and manage items.');
+            } else if (inputText.includes('open orders')) {
+                displaySuggestion('Do you need help checking open orders?', 'To check open orders, go to "My Account" and select "Open Orders".');
+            } else if (inputText.includes('quick order')) {
+                displaySuggestion('Need help with placing a quick order?', 'Access "Quick Order Pad" in "My Account" to place an order.');
+            } else if (inputText.includes('business account')) {
+                displaySuggestion('Do you need guidance on requesting a new business account?', 'To request a business account, go to "Sign In/Register" and select "REQUEST BUSINESS ACCOUNT".');
+            } else {
+                removeSuggestion();
+            }
+        }
+        // Update the input event listener for message input
+        messageInput.addEventListener('input', function() {
+            const inputText = messageInput.value.toLowerCase();
+            autoExpandTextarea();
+            handleSuggestionDisplay(inputText);
+
+            // If a suggestion is active, track additional characters
+            const suggestionBox = document.getElementById('suggestion-box');
+            if (suggestionBox) {
+                charactersTypedAfterSuggestion += 1;
+                if (charactersTypedAfterSuggestion >= 20) {
+                    hideSuggestion();
+                    clearTimeout(suggestionTimeout);
+                }
+            }
+        });
+
+        document.getElementById('question-mark-icon').addEventListener('click', () => {
+            if (promptContainer.innerHTML === '') {
+                displayPrompts();
+            } else {
+                exitPrompts();
+            }
+
+            // Hide the tooltip immediately
+            const tooltip = document.getElementById('tooltip');
+            tooltip.classList.remove('visible');
+            tooltip.classList.add('hidden');
+        });
+
+
+        // Function to hide suggestion with sliding animation
+        function hideSuggestion() {
+            const suggestionBox = document.getElementById('suggestion-box');
+            if (!suggestionBox) return;
+
+            suggestionBox.classList.add('hide');
+
+            // Remove the suggestion box after the animation ends
+            suggestionBox.addEventListener('animationend', () => {
+                if (suggestionBox.parentNode) {
+                    suggestionBox.parentNode.removeChild(suggestionBox);
+                }
+            });
+        }
+
+        // Function to remove suggestion immediately
+        function removeSuggestion() {
+            hideSuggestion();
+            clearTimeout(suggestionTimeout);
+        }
+
+        // Function to auto-expand textarea
+        function autoExpandTextarea() {
+            const maxHeight = 100; // Define the maximum height for the textarea
+
+            // Temporarily set the height to 'auto' to calculate accurate scrollHeight
+            messageInput.style.height = 'auto';
+
+            // Calculate the appropriate new height based on content
+            const newHeight = Math.min(messageInput.scrollHeight, maxHeight);
+
+            // Set the height to the calculated height
+            messageInput.style.height = `${newHeight}px`;
+        }
+
+        // Reset the textarea height after message is submitted or cleared
+        function resetTextareaHeight() {
+            messageInput.style.height = 'auto'; // Let autoExpandTextarea handle the height
+        }
+
+        // Consolidated 'input' event listener
+        messageInput.addEventListener('input', function() {
+            const inputText = messageInput.value.toLowerCase();
+            autoExpandTextarea();
+            handleSuggestionDisplay(inputText);
+
+            // If a suggestion is active, track additional characters
+            const suggestionBox = document.getElementById('suggestion-box');
+            if (suggestionBox) {
+                charactersTypedAfterSuggestion += 1;
+                if (charactersTypedAfterSuggestion >= 20) {
+                    hideSuggestion();
+                    clearTimeout(suggestionTimeout);
+                }
+            }
+        });
+        // Event listener for send button click
+        sendButton.addEventListener('click', (event) => {
+            createRipple(event);
+            handleSendMessage(event);
+        });
+
+        // Event listener for Enter key
+        messageInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) { 
+                event.preventDefault(); 
+                handleSendMessage(event);
+            }
+        });
+
+        // Call displayPrompts when the page loads
+        //window.onload = function() {
+            //displayPrompts();
+        //};
+
+        window.onload = function() {
+            // Show the tooltip
+            const tooltip = document.getElementById('tooltip');
+            tooltip.classList.remove('hidden');
+            tooltip.classList.add('visible');
+            
+            // After 5 seconds, hide the tooltip
+            setTimeout(function() {
+                tooltip.classList.remove('visible');
+                // After the transition ends, add the 'hidden' class
+                setTimeout(function() {
+                    tooltip.classList.add('hidden');
+                }, 300); // Match the CSS transition duration
+            }, 5000); // Tooltip is visible for 5 seconds
+        };
+    </script>
+</body>
+</html>
