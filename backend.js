@@ -26,7 +26,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY 
 });
 
-const assistantId = "asst_BvrFPSsSNhed6wOdnjwjH2GK";
+const defaultAssistantId = "asst_BvrFPSsSNhed6wOdnjwjH2GK";
 
 app.post('/chat', async (req, res) => {
     const { message, threadId, assistantId } = req.body;
@@ -47,7 +47,7 @@ app.post('/chat', async (req, res) => {
 
         let responseText = "";
         await openai.beta.threads.runs.stream(thread.id, {
-            assistant_id: assistantId || "asst_BvrFPSsSNhed6wOdnjwjH2GK" // Use the assistant ID from the request or default
+            assistant_id: assistantId || defaultAssistantId
         })
             .on('textDelta', (textDelta) => {
             console.log('Received textDelta:', textDelta);
@@ -59,7 +59,7 @@ app.post('/chat', async (req, res) => {
           })
           .on('end', () => {
             responseText = responseText.replace(/【.*?】/g, '');
-            console.log('Generating response using Assistant ID:', assistantId || "asst_BvrFPSsSNhed6wOdnjwjH2GK");
+            console.log('Generating response using Assistant ID:', assistantId || defaultAssistantId);
             console.log('Assistant response:', responseText);
             res.json({ threadId: thread.id, response: responseText });
           });
