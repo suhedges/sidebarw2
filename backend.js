@@ -48,10 +48,9 @@ app.post('/chat', async (req, res) => {
             content: message
         });
 
-        // Create a run with the assistant_id
+        // Create a run without assistant_id
         const run = await openai.beta.runs.create({
-            thread_id: thread.id,
-            assistant_id: assistantId || defaultAssistantId
+            thread_id: thread.id
         });
 
         let responseText = "";
@@ -66,7 +65,6 @@ app.post('/chat', async (req, res) => {
             })
             .on('end', () => {
                 responseText = responseText.replace(/【.*?】/g, '');
-                console.log('Generating response using Assistant ID:', assistantId || defaultAssistantId);
                 console.log('Assistant response:', responseText);
                 res.json({ threadId: thread.id, response: responseText, assistantId: assistantId });
             });
