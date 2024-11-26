@@ -47,8 +47,14 @@ app.post('/chat', async (req, res) => {
             content: message
         });
 
+        // Create a run with the assistant_id
+        const run = await openai.beta.runs.create({
+            thread_id: thread.id,
+            assistant_id: assistantId || defaultAssistantId
+        });
+
         let responseText = "";
-        await openai.beta.threads.runs.stream(thread.id, {})
+        await openai.beta.runs.stream(run.id, {})
             .on('textDelta', (textDelta) => {
                 console.log('Received textDelta:', textDelta);
                 if (typeof textDelta.value === 'string') {
