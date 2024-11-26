@@ -746,8 +746,9 @@
         </div>
 
     <script>
-        const renderer = new marked.Renderer();
 
+        let assistantThreads = {};
+        const renderer = new marked.Renderer();
         const messagesContainer = document.getElementById('messages');
         const messageInput = document.getElementById('message-input');
         const autocompleteList = document.getElementById('autocomplete-list');
@@ -844,7 +845,13 @@
                     assistantId = option.id; 
                     displaySelectedAssistant(option.name);
                     messageInput.value = val.slice(0, atIndex).trim();
-                    threadId = null; // Reset the thread ID to ensure a new thread is created
+                    
+                    if (assistantThreads[assistantId]) {
+                        threadId = assistantThreads[assistantId];
+                    } else {
+                        threadId = null; 
+                    }
+
                     closeAllLists();
                 });
 
@@ -1045,7 +1052,6 @@
             if (!userMessage) return;
 
             // Use the assistantId as set by the selected assistant tag
-            // If no assistant is selected, use the default assistant ID
             if (!assistantId) {
                 assistantId = 'asst_BvrFPSsSNhed6wOdnjwjH2GK'; // Default assistant ID
             }
@@ -1097,6 +1103,9 @@
                 const data = await response.json();
                 console.log('Received response from backend:', data);
                 console.log('Response was generated using Assistant ID:', data.assistantId);
+
+                // Store the threadId for the current assistant
+                assistantThreads[assistantId] = data.threadId;
                 threadId = data.threadId;
 
                 // Remove the typing indicator and display the assistant's response
