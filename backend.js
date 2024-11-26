@@ -30,7 +30,6 @@ const defaultAssistantId = "asst_BvrFPSsSNhed6wOdnjwjH2GK";
 
 app.post('/chat', async (req, res) => {
     const { message, threadId, assistantId } = req.body;
-    res.json({ threadId: thread.id, response: responseText, assistantId: assistantId });
     console.log('Received assistantId:', assistantId);
 
     try {
@@ -49,27 +48,26 @@ app.post('/chat', async (req, res) => {
         });
 
         let responseText = "";
-        await openai.beta.threads.runs.stream(thread.id, {
-        })
+        await openai.beta.threads.runs.stream(thread.id, {})
             .on('textDelta', (textDelta) => {
-            console.log('Received textDelta:', textDelta);
-            if (typeof textDelta.value === 'string') {
-              responseText += textDelta.value;
-            } else if (typeof textDelta.value === 'object' && textDelta.value.text) {
-              responseText += textDelta.value.text; 
-            }
-          })
-          .on('end', () => {
-            responseText = responseText.replace(/【.*?】/g, '');
-            console.log('Generating response using Assistant ID:', assistantId || defaultAssistantId);
-            console.log('Assistant response:', responseText);
-            res.json({ threadId: thread.id, response: responseText });
-          });
+                console.log('Received textDelta:', textDelta);
+                if (typeof textDelta.value === 'string') {
+                    responseText += textDelta.value;
+                } else if (typeof textDelta.value === 'object' && textDelta.value.text) {
+                    responseText += textDelta.value.text; 
+                }
+            })
+            .on('end', () => {
+                responseText = responseText.replace(/【.*?】/g, '');
+                console.log('Generating response using Assistant ID:', assistantId || defaultAssistantId);
+                console.log('Assistant response:', responseText);
+                res.json({ threadId: thread.id, response: responseText, assistantId: assistantId });
+            });
 
-      } catch (error) {
+    } catch (error) {
         console.error('OpenAI API Error:', error.response ? error.response.data : error.message);
         res.status(500).json({ error: error.message });
-      }
+    }
 });
 
 const PORT = process.env.PORT || 3000;
