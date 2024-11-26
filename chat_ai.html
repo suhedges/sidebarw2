@@ -842,13 +842,13 @@
                 itemDiv.innerHTML = `<strong>${option.name}</strong>`;
                 itemDiv.classList.add('autocomplete-item');
                 itemDiv.addEventListener('click', function(e) {
+                    assistantId = option.id; 
                     displaySelectedAssistant(option.name);
                     messageInput.value = val.slice(0, atIndex).trim();
-                    assistantId = option.id; 
-                    window.threadId = null; 
-                    console.log('After resetting, threadId:', threadId);
+                    threadId = null; // Reset the thread ID to ensure a new thread is created
                     closeAllLists();
                 });
+
 
                 // Append the itemDiv to the listDiv
                 listDiv.appendChild(itemDiv);
@@ -1030,6 +1030,7 @@
 
             console.log('Selected Assistant ID:', assistantId);
         }
+
 
 
         // Function to handle send message
