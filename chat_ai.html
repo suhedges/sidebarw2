@@ -760,8 +760,8 @@
         const suggestionContainer = document.getElementById('suggestion-container'); 
         const promptContainer = document.getElementById('prompt-container');
         let threadId = null;
-        let charactersTypedAfterSuggestion = 0; // Counter for auto-hide
-        let suggestionTimeout = null; // To store the timeout
+        let charactersTypedAfterSuggestion = 0; 
+        let suggestionTimeout = null; 
         let currentFocus = -1;
         
 
@@ -844,10 +844,12 @@
                 itemDiv.addEventListener('click', function(e) {
                     displaySelectedAssistant(option.name);
                     messageInput.value = val.slice(0, atIndex).trim();
-                    assistantId = option.id; // Set the assistant ID based on selection
-                    threadId = null; // Reset the thread ID to ensure a new thread is created
+                    assistantId = option.id; 
+                    window.threadId = null; 
+                    console.log('After resetting, threadId:', threadId);
                     closeAllLists();
                 });
+
                 // Append the itemDiv to the listDiv
                 listDiv.appendChild(itemDiv);
             });
