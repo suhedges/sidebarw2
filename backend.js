@@ -41,6 +41,7 @@ app.post('/chat', async (req, res) => {
             thread = await openai.beta.threads.create({
                 assistant_id: assistantId || defaultAssistantId
             });
+            console.log('Created thread:', thread);
         }
         await openai.beta.threads.messages.create(thread.id, {
             role: "user",
