@@ -30,6 +30,7 @@ const defaultAssistantId = "asst_BvrFPSsSNhed6wOdnjwjH2GK";
 
 app.post('/chat', async (req, res) => {
     const { message, threadId, assistantId } = req.body;
+    res.json({ threadId: thread.id, response: responseText, assistantId: assistantId });
     console.log('Received assistantId:', assistantId);
 
     try {
