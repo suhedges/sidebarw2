@@ -45,12 +45,12 @@ app.post('/chat', async (req, res) => {
         }
         await openai.beta.threads.messages.create(thread.id, {
             role: "user",
-            content: message
+            content: message,
         });
 
-        // Create a run without assistant_id
         const run = await openai.beta.runs.create({
-            thread_id: thread.id
+            thread_id: thread.id,
+            assistant_id: assistantId || defaultAssistantId,
         });
 
         let responseText = "";
