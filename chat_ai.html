@@ -764,6 +764,9 @@
         let charactersTypedAfterSuggestion = 0; 
         let suggestionTimeout = null; 
         let currentFocus = -1;
+        let isSelectingOption = false; 
+        let enterTimeout = null; 
+
         
 
         const assistantOptions = [
@@ -812,20 +815,24 @@
             closeAllLists();
             const atIndex = val.lastIndexOf('@');
             if (atIndex === -1) {
+                isSelectingOption = false;
                 return false;
             }
 
             const query = val.slice(atIndex + 1).toLowerCase();
 
             const filteredOptions = assistantOptions.filter(option =>
-                option.name.toLowerCase().includes(query)
+                option.name.toLowerCase().startsWith(query) // Use startsWith for better matching
             );
 
             console.log('Filtered Options:', filteredOptions);
 
             if (filteredOptions.length === 0) {
+                isSelectingOption = false;
                 return false;
             }
+
+            isSelectingOption = true;
 
             // Create a DIV element that will contain the items (values)
             const listDiv = document.createElement('div');
@@ -842,16 +849,18 @@
                 itemDiv.innerHTML = `<strong>${option.name}</strong>`;
                 itemDiv.classList.add('autocomplete-item');
                 itemDiv.addEventListener('click', function(e) {
-                    assistantId = option.id; 
-                    displaySelectedAssistant(option.name);
-                    messageInput.value = val.slice(0, atIndex).trim();
-                    
-                    if (assistantThreads[assistantId]) {
-                        threadId = assistantThreads[assistantId];
-                    } else {
-                        threadId = null; 
+                    const val = messageInput.value;
+                    const atIndex = val.lastIndexOf('@');
+                    if (atIndex !== -1) {
+                        // Replace the @query with the selected assistant's name
+                        messageInput.value = val.slice(0, atIndex).trim() + ' ';
+                        
+                        // Switch the assistant context
+                        switchAssistant(option.id, option.name);
+                        
+                        isSelectingOption = false;
+                        clearTimeout(enterTimeout); // Clear the timeout if any
                     }
-
                     closeAllLists();
                 });
 
@@ -859,6 +868,10 @@
                 // Append the itemDiv to the listDiv
                 listDiv.appendChild(itemDiv);
             });
+
+            // Automatically highlight the first item
+            currentFocus = 0;
+            addActive(document.getElementsByClassName('autocomplete-item'));
         });
 
         // Close all autocomplete lists in the document, except the one passed as an argument
@@ -869,6 +882,7 @@
                     items[i].parentNode.removeChild(items[i]);
                 }
             }
+            isSelectingOption = false;
         }
 
         // Close the list when clicking outside
@@ -880,23 +894,65 @@
         messageInput.addEventListener('keydown', function(e) {
             let items = document.getElementById('autocomplete-list');
             if (items) items = items.getElementsByClassName('autocomplete-item');
-            if (e.keyCode === 40) {
-                // Arrow DOWN key
+
+            if (e.keyCode === 40) { // Arrow Down
                 currentFocus++;
                 addActive(items);
-            } else if (e.keyCode === 38) {
-                // Arrow UP key
+            } else if (e.keyCode === 38) { // Arrow Up
                 currentFocus--;
                 addActive(items);
-            } else if (e.keyCode === 13) {
-                // ENTER key
-                e.preventDefault();
-                if (currentFocus > -1) {
-                    if (items) items[currentFocus].click();
+            } else if (e.keyCode === 13) { // Enter Key
+                if (isSelectingOption && items && currentFocus > -1) {
+                    e.preventDefault();
+                    items[currentFocus].click();
+                    // Start timeout to revert Enter key behavior
+                    isSelectingOption = true;
+                    if (enterTimeout) clearTimeout(enterTimeout);
+                    enterTimeout = setTimeout(() => {
+                        isSelectingOption = false;
+                    }, 2000); // 2-second timeout
+                } else {
+                    // Default behavior: send the message
+                    // Prevent default only if message is being sent
+                    if (!e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage(e);
+                    }
+                }
+            } else if (e.keyCode === 32) { // Space Key
+                if (isSelectingOption) {
+                    const val = messageInput.value;
+                    const atIndex = val.lastIndexOf('@');
+                    if (atIndex !== -1) {
+                        const query = val.slice(atIndex + 1).trim();
+                        const exactMatch = assistantOptions.find(option => option.name.toLowerCase() === query.toLowerCase());
+                        if (exactMatch) {
+                            e.preventDefault();
+                            // Replace the @query with the exact match and switch assistant
+                            messageInput.value = val.slice(0, atIndex).trim() + ' ';
+                            switchAssistant(exactMatch.id, exactMatch.name);
+                            isSelectingOption = false;
+                            closeAllLists();
+                        }
+                    }
                 }
             }
         });
 
+        function debounce(func, delay) {
+            let debounceTimer;
+            return function() {
+                const context = this;
+                const args = arguments;
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => func.apply(context, args), delay);
+            }
+        }
+
+        // Apply debounce to the input event listener
+        messageInput.addEventListener('input', debounce(function(e) {
+            // ... existing input handler code ...
+        }, 300));
         function addActive(items) {
             if (!items) return false;
             removeActive(items);
@@ -1026,10 +1082,8 @@
             removeButton.className = 'assistant-tag-remove';
             removeButton.innerHTML = '&times;';
             removeButton.onclick = function() {
-                // Reset to default assistant ID
-                assistantId = 'asst_BvrFPSsSNhed6wOdnjwjH2GK';
                 container.innerHTML = '';
-                threadId = null; 
+                switchAssistant('asst_BvrFPSsSNhed6wOdnjwjH2GK', 'Bearings');
             };
 
             assistantTag.appendChild(removeButton);
@@ -1307,20 +1361,100 @@ Efficient management of your favorites enhances your shopping experience by prov
         }
         // Update the input event listener for message input
         messageInput.addEventListener('input', function() {
-            const inputText = messageInput.value.toLowerCase();
+            console.log('Input event fired');
+            const val = this.value;
             autoExpandTextarea();
-            handleSuggestionDisplay(inputText);
+            handleSuggestionDisplay(val.toLowerCase());
+            handleAutocompleteHighlight(val.toLowerCase());
+            closeAllLists();
 
-            // If a suggestion is active, track additional characters
-            const suggestionBox = document.getElementById('suggestion-box');
-            if (suggestionBox) {
-                charactersTypedAfterSuggestion += 1;
-                if (charactersTypedAfterSuggestion >= 20) {
-                    hideSuggestion();
-                    clearTimeout(suggestionTimeout);
-                }
+            const atIndex = val.lastIndexOf('@');
+            if (atIndex === -1) {
+                isSelectingOption = false;
+                return;
             }
+
+            const query = val.slice(atIndex + 1).toLowerCase();
+
+            const filteredOptions = assistantOptions.filter(option =>
+                option.name.toLowerCase().startsWith(query) // Use startsWith for better matching
+            );
+
+            console.log('Filtered Options:', filteredOptions);
+
+            if (filteredOptions.length === 0) {
+                isSelectingOption = false;
+                return;
+            }
+
+            isSelectingOption = true;
+
+            // Create a DIV element that will contain the items (values)
+            const listDiv = document.createElement('div');
+            listDiv.setAttribute('id', 'autocomplete-list');
+            listDiv.setAttribute('class', 'autocomplete-items');
+            const chatContainer = document.getElementById('chat-container');
+            const inputWrapper = document.getElementById('input-wrapper');
+            chatContainer.insertBefore(listDiv, inputWrapper);
+
+            // For each item in the array...
+            filteredOptions.forEach((option, index) => {
+                // Create a DIV element for each matching element
+                const itemDiv = document.createElement('div');
+                itemDiv.innerHTML = `<strong>${option.name}</strong>`;
+                itemDiv.classList.add('autocomplete-item');
+                itemDiv.addEventListener('click', function(e) {
+                    const val = messageInput.value;
+                    const atIndex = val.lastIndexOf('@');
+                    if (atIndex !== -1) {
+
+                        messageInput.value = val.slice(0, atIndex).trim() + ' ';
+                        
+                        switchAssistant(option.id, option.name);
+                        
+                        isSelectingOption = false;
+                        clearTimeout(enterTimeout); // Clear the timeout if any
+                    }
+                    closeAllLists();
+                });
+
+                // Append the itemDiv to the listDiv
+                listDiv.appendChild(itemDiv);
+            });
+
+            // Automatically highlight the first item
+            currentFocus = 0;
+            addActive(document.getElementsByClassName('autocomplete-item'));
         });
+
+
+
+        function handleAutocompleteHighlight(inputText) {
+            const atIndex = inputText.lastIndexOf('@');
+            if (atIndex === -1) {
+                isSelectingOption = false;
+                return;
+            }
+
+            const query = inputText.slice(atIndex + 1).trim();
+            if (query.length === 0) {
+                isSelectingOption = false;
+                return;
+            }
+
+            const filteredOptions = assistantOptions.filter(option =>
+                option.name.toLowerCase().includes(query)
+            );
+
+            if (filteredOptions.length > 0) {
+                isSelectingOption = true;
+                currentFocus = 0; // Highlight the first item by default
+                addActive(document.getElementsByClassName('autocomplete-item'));
+            } else {
+                isSelectingOption = false;
+            }
+        }
+
 
         document.getElementById('question-mark-icon').addEventListener('click', () => {
             if (promptContainer.innerHTML === '') {
@@ -1376,22 +1510,7 @@ Efficient management of your favorites enhances your shopping experience by prov
             messageInput.style.height = 'auto'; // Let autoExpandTextarea handle the height
         }
 
-        // Consolidated 'input' event listener
-        messageInput.addEventListener('input', function() {
-            const inputText = messageInput.value.toLowerCase();
-            autoExpandTextarea();
-            handleSuggestionDisplay(inputText);
 
-            // If a suggestion is active, track additional characters
-            const suggestionBox = document.getElementById('suggestion-box');
-            if (suggestionBox) {
-                charactersTypedAfterSuggestion += 1;
-                if (charactersTypedAfterSuggestion >= 20) {
-                    hideSuggestion();
-                    clearTimeout(suggestionTimeout);
-                }
-            }
-        });
         // Event listener for send button click
         sendButton.addEventListener('click', (event) => {
             createRipple(event);
@@ -1406,10 +1525,6 @@ Efficient management of your favorites enhances your shopping experience by prov
             }
         });
 
-        // Call displayPrompts when the page loads
-        //window.onload = function() {
-            //displayPrompts();
-        //};
 
         window.onload = function() {
             // Show the tooltip
@@ -1425,7 +1540,43 @@ Efficient management of your favorites enhances your shopping experience by prov
                     tooltip.classList.add('hidden');
                 }, 300); // Match the CSS transition duration
             }, 5000); // Tooltip is visible for 5 seconds
+
+            // Initialize the default assistant
+            switchAssistant('asst_BvrFPSsSNhed6wOdnjwjH2GK', 'Bearings');
         };
+
+        function switchAssistant(newAssistantId, assistantName) {
+            assistantId = newAssistantId;
+            displaySelectedAssistant(assistantName);
+
+            // Update threadId for the new assistant
+            if (assistantThreads[assistantId]) {
+                threadId = assistantThreads[assistantId];
+            } else {
+                threadId = null;
+            }
+
+            // Clear chat messages
+            clearChatMessages();
+
+            // Hide any suggestions or prompts
+            exitPrompts();
+            removeSuggestion();
+            clearTimeout(suggestionTimeout);
+            charactersTypedAfterSuggestion = 0;
+        }
+
+        function clearChatMessages() {
+            const messageElements = document.querySelectorAll('.message');
+            messageElements.forEach(message => message.remove());
+
+            // Optionally, reset the welcome message
+            if (welcomeMessage) {
+                welcomeMessage.style.display = 'block';
+            }
+        }
+
+
     </script>
 </body>
 </html>
