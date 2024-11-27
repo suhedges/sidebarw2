@@ -35,22 +35,35 @@ app.post('/chat', async (req, res) => {
     try {
         let thread;
         if (threadId) {
-            thread = { id: threadId };
+            // Retrieve the thread
+            thread = await openai.beta.threads.retrieve(threadId);
+            console.log('Retrieved thread:', thread);
+
+            // Check if the assistantId matches
+            if (thread.assistant_id !== assistantId) {
+                // Assistant ID has changed, create a new thread
+                thread = await openai.beta.threads.create({
+                    assistant_id: assistantId || defaultAssistantId
+                });
+                console.log('Assistant ID changed, created new thread:', thread);
+            }
         } else {
-            // Include assistantId when creating a new thread
+            // Create a new thread with the provided assistantId
             thread = await openai.beta.threads.create({
                 assistant_id: assistantId || defaultAssistantId
             });
             console.log('Created thread:', thread);
         }
+
+        // Add the user's message to the thread
         await openai.beta.threads.messages.create(thread.id, {
             role: "user",
             content: message,
         });
 
+        // Create a new run without assistantId since it's associated with the thread
         const run = await openai.beta.runs.create({
             thread_id: thread.id,
-            assistant_id: assistantId || defaultAssistantId,
         });
 
         let responseText = "";
